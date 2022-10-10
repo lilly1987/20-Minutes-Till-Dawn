@@ -44,8 +44,10 @@ namespace BepInPluginSample
 
         private static ConfigEntry<bool> hpChg;
         private static ConfigEntry<bool> useAmmo;
+        private static ConfigEntry<float> movementSpeed;
         private static ConfigEntry<float> xpMulti;
         private static ConfigEntry<float> pickupRangeAdd;
+        private static ConfigEntry<float> visionRangeAdd;
 
         public void Awake()
         {
@@ -72,8 +74,10 @@ namespace BepInPluginSample
 
             hpChg = Config.Bind("game", "hpChg", false);
             useAmmo = Config.Bind("game", "useAmmo", false);
+            movementSpeed = Config.Bind("game", "movementSpeed", 8f);
             xpMulti = Config.Bind("game", "xpMulti", 2f);
             pickupRangeAdd = Config.Bind("game", "pickupRangeAdd", 9f);
+            visionRangeAdd = Config.Bind("game", "visionRangeAdd", 9f);
         }
 
         public void IsOpen_SettingChanged(object sender, EventArgs e)
@@ -177,8 +181,14 @@ namespace BepInPluginSample
                 {
                     GUILayout.BeginHorizontal();
                     GUILayout.Label($"move Speed : {PlayerController.Instance.movementSpeed}");
-                    if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20))) { PlayerController.Instance.movementSpeed += 1; }
-                    if (GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20))) { PlayerController.Instance.movementSpeed -= 1; }
+                    if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20))) {
+                        movementSpeed.Value += 1;
+                        PlayerController.Instance.movementSpeed += 1; 
+                    }
+                    if (GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20))) {
+                        movementSpeed.Value -= 1;
+                        PlayerController.Instance.movementSpeed -= 1; 
+                    }
                     GUILayout.EndHorizontal();
 
                     GUILayout.Label($"move Speed Modify : {PlayerController.Instance.stats[StatType.MoveSpeed].Modify(PlayerController.Instance.movementSpeed)}");
@@ -202,6 +212,21 @@ namespace BepInPluginSample
                     GUILayout.EndHorizontal();
 
                     //GameObject.FindGameObjectWithTag("PlayerVision").transform.localScale = Vector3.one * PlayerController.Instance.stats[StatType.VisionRange].Modify(1f);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label($"Pickupper AddMultiplierBonus : {PlayerController.Instance.stats[StatType.VisionRange].Modify(1f)}");
+                    //GUILayout.Label($"baseValue * (1f + multiplierBonus) * multiplierReduction + flatBonus");
+                    if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
+                    {
+                        visionRangeAdd.Value += 1;
+                        PlayerController.Instance.stats[StatType.VisionRange].AddMultiplierBonus(1);
+                    }
+                    if (GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20)))
+                    {
+                        visionRangeAdd.Value -= 1;
+                        PlayerController.Instance.stats[StatType.VisionRange].AddMultiplierBonus(-1);
+                    }
+                    GUILayout.EndHorizontal();
+
                 }
                 else
                 {
@@ -341,14 +366,14 @@ namespace BepInPluginSample
         {
             logger.LogWarning($"PlayerController.Awake");
         }
-        
+
         [HarmonyPatch(typeof(PlayerController), "Awake")]
         [HarmonyPrefix]
         public static void AwakePost(PlayerController __instance)
         {
             logger.LogWarning($"PlayerController.AwakePost");
         }
-        
+
         [HarmonyPatch(typeof(StatsHolder), "Awake")]
         [HarmonyPrefix]
         public static void Awake(StatsHolder __instance)
@@ -376,8 +401,14 @@ namespace BepInPluginSample
         public static void StartPost(PlayerBuffs __instance)
         {
             logger.LogWarning($"PlayerBuffs.StartPost");
+
+            PlayerController.Instance.movementSpeed += movementSpeed.Value;
+
             PlayerController.Instance.stats[StatType.PickupRange].AddMultiplierBonus(pickupRangeAdd.Value);
             GameObject.FindGameObjectWithTag("Pickupper").transform.localScale = Vector3.one * PlayerController.Instance.stats[StatType.PickupRange].Modify(1f);
+
+            PlayerController.Instance.stats[StatType.VisionRange].AddMultiplierBonus(visionRangeAdd.Value);
+            GameObject.FindGameObjectWithTag("PlayerVision").transform.localScale = Vector3.one * PlayerController.Instance.stats[StatType.VisionRange].Modify(1f);
         }
 
         [HarmonyPatch(typeof(BuffPlayerStats), "Start")]
