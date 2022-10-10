@@ -181,15 +181,6 @@ namespace BepInPluginSample
 
 
                 if (GUILayout.Button($"onlyWin {onlyWin.Value}")) { onlyWin.Value = !onlyWin.Value; }
-                if (GUILayout.Button($"hpChg {hpChg.Value}")) { hpChg.Value = !hpChg.Value; }
-
-                if (GUILayout.Button($"useAmmo {useAmmo.Value}")) { useAmmo.Value = !useAmmo.Value; }
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Label($"xp Multiplier {xpMulti.Value}");
-                if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20))) { xpMulti.Value += 1; }
-                if (GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20))) { xpMulti.Value -= 1; }
-                GUILayout.EndHorizontal();
 
                 if (GameTimer.SharedInstance != null)
                 {
@@ -200,6 +191,17 @@ namespace BepInPluginSample
                 {
                     GUILayout.Label("GameTimer null");
                 }
+
+                if (GUILayout.Button($"hpChg {hpChg.Value}")) { hpChg.Value = !hpChg.Value; }
+
+                if (GUILayout.Button($"useAmmo {useAmmo.Value}")) { useAmmo.Value = !useAmmo.Value; }
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Label($"xp Multiplier {xpMulti.Value}");
+                if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20))) { xpMulti.Value += 1; }
+                if (GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20))) { xpMulti.Value -= 1; }
+                GUILayout.EndHorizontal();
+
                 if (PlayerController.Instance != null)
                 {
                     GUILayout.BeginHorizontal();
