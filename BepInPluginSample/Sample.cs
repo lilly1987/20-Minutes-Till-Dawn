@@ -2,6 +2,7 @@
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using flanne;
+using flanne.Core;
 using flanne.Player;
 using HarmonyLib;
 using System;
@@ -44,6 +45,7 @@ namespace BepInPluginSample
 
         private static ConfigEntry<bool> hpChg;
         private static ConfigEntry<bool> useAmmo;
+        private static ConfigEntry<bool> onlyWin;
         private static ConfigEntry<float> movementSpeed;
         private static ConfigEntry<float> xpMulti;
         private static ConfigEntry<float> pickupRangeAdd;
@@ -72,6 +74,7 @@ namespace BepInPluginSample
 
             // =========================================================
 
+            onlyWin = Config.Bind("game", "onlyWin", true);
             hpChg = Config.Bind("game", "hpChg", false);
             useAmmo = Config.Bind("game", "useAmmo", false);
             movementSpeed = Config.Bind("game", "movementSpeed", 8f);
@@ -167,6 +170,17 @@ namespace BepInPluginSample
                 // 여기에 항목 작성
                 // =========================================================
 
+                if (GUILayout.Button($"add point 100000 : {PointsTracker.pts}")) {
+                    PointsTracker.pts += 100000;
+                    if (SaveSystem.data != null)
+                    {
+                        SaveSystem.data.points = PointsTracker.pts;
+                        SaveSystem.Save();
+                    }
+                }
+
+
+                if (GUILayout.Button($"onlyWin {onlyWin.Value}")) { onlyWin.Value = !onlyWin.Value; }
                 if (GUILayout.Button($"hpChg {hpChg.Value}")) { hpChg.Value = !hpChg.Value; }
 
                 if (GUILayout.Button($"useAmmo {useAmmo.Value}")) { useAmmo.Value = !useAmmo.Value; }
@@ -177,17 +191,28 @@ namespace BepInPluginSample
                 if (GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20))) { xpMulti.Value -= 1; }
                 GUILayout.EndHorizontal();
 
+                if (GameTimer.SharedInstance != null)
+                {
+                    GUILayout.Label($"timer : {GameTimer.SharedInstance.timer}");
+                    GUILayout.Label($"timeLimit : {GameTimer.SharedInstance.timeLimit}");
+                }
+                else
+                {
+                    GUILayout.Label("GameTimer null");
+                }
                 if (PlayerController.Instance != null)
                 {
                     GUILayout.BeginHorizontal();
                     GUILayout.Label($"move Speed : {PlayerController.Instance.movementSpeed}");
-                    if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20))) {
+                    if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
+                    {
                         movementSpeed.Value += 1;
-                        PlayerController.Instance.movementSpeed += 1; 
+                        PlayerController.Instance.movementSpeed += 1;
                     }
-                    if (GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20))) {
+                    if (GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20)))
+                    {
                         movementSpeed.Value -= 1;
-                        PlayerController.Instance.movementSpeed -= 1; 
+                        PlayerController.Instance.movementSpeed -= 1;
                     }
                     GUILayout.EndHorizontal();
 
@@ -213,7 +238,7 @@ namespace BepInPluginSample
 
                     //GameObject.FindGameObjectWithTag("PlayerVision").transform.localScale = Vector3.one * PlayerController.Instance.stats[StatType.VisionRange].Modify(1f);
                     GUILayout.BeginHorizontal();
-                    GUILayout.Label($"Pickupper AddMultiplierBonus : {PlayerController.Instance.stats[StatType.VisionRange].Modify(1f)}");
+                    GUILayout.Label($"VisionRange AddMultiplierBonus : {PlayerController.Instance.stats[StatType.VisionRange].Modify(1f)}");
                     //GUILayout.Label($"baseValue * (1f + multiplierBonus) * multiplierReduction + flatBonus");
                     if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
                     {
@@ -258,7 +283,7 @@ namespace BepInPluginSample
             {
                 return;
             }
-            logger.LogWarning($"HPChange {__instance.maxHP} , {change}");
+            //logger.LogWarning($"HPChange {__instance.maxHP} , {change}");
             change = __instance.maxHP / 2;
         }
 
@@ -425,6 +450,29 @@ namespace BepInPluginSample
             logger.LogWarning($"BuffPlayerStats.StartPost");
         }
 
-        // =========================================================
+        [HarmonyPatch(typeof(CombatState), "OnDeath")]
+        [HarmonyPrefix]
+        public static bool OnDeath(CombatState __instance, GameController ___owner)
+        {
+            logger.LogWarning($"CombatState.OnDeath");
+            // this.owner.ChangeState<PlayerDeadState>();
+            if (onlyWin.Value)
+            {
+                ___owner.ChangeState<KillEnemiesState>();
+                return false;
+            }
+            return true;
+        }
+
+        [HarmonyPatch(typeof(CombatState), "OnTimerReached")]
+        [HarmonyPostfix]
+        public static void OnTimerReached(CombatState __instance)
+        {
+            logger.LogWarning($"CombatState.OnTimerReached");
+            // this.owner.ChangeState<KillEnemiesState>();
+        }
     }
+
+    // =========================================================
 }
+
