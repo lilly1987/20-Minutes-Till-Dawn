@@ -46,10 +46,12 @@ namespace BepInPluginSample
         private static ConfigEntry<bool> hpChg;
         private static ConfigEntry<bool> useAmmo;
         private static ConfigEntry<bool> onlyWin;
+        private static ConfigEntry<bool> CanReroll;
         private static ConfigEntry<float> movementSpeed;
         private static ConfigEntry<float> xpMulti;
         private static ConfigEntry<float> pickupRangeAdd;
         private static ConfigEntry<float> visionRangeAdd;
+        private static ConfigEntry<float> speedMultiplier;
         private static ConfigEntry<int> swawmMulti;
         private static ConfigEntry<int> hpMulti;
 
@@ -77,12 +79,14 @@ namespace BepInPluginSample
             // =========================================================
 
             onlyWin = Config.Bind("game", "onlyWin", true);
+            CanReroll = Config.Bind("game", "CanReroll", true);
             hpChg = Config.Bind("game", "hpChg", false);
             useAmmo = Config.Bind("game", "useAmmo", false);
             movementSpeed = Config.Bind("game", "movementSpeed", 8f);
             xpMulti = Config.Bind("game", "xpMulti", 2f);
             pickupRangeAdd = Config.Bind("game", "pickupRangeAdd", 9f);
             visionRangeAdd = Config.Bind("game", "visionRangeAdd", 9f);
+            speedMultiplier = Config.Bind("game", "speedMultiplier", 9f);
             swawmMulti = Config.Bind("game", "swawmMulti", 2);
             hpMulti = Config.Bind("game", "hpMulti", 2);
 
@@ -186,6 +190,7 @@ namespace BepInPluginSample
                 }
 
 
+                if (GUILayout.Button($"CanReroll {CanReroll.Value}")) { CanReroll.Value = !CanReroll.Value; }
                 if (GUILayout.Button($"onlyWin {onlyWin.Value}")) { onlyWin.Value = !onlyWin.Value; }
 
                 if (GameTimer.SharedInstance != null)
@@ -261,6 +266,25 @@ namespace BepInPluginSample
                     GUILayout.EndHorizontal();
 
 
+                    GUILayout.Label($"--- powerup --- {takenPowerups.Count}");
+                    if (GUILayout.Button($"All Add One"))
+                    {
+                        List<Powerup> l = new List<Powerup>();
+                        foreach (PowerupPoolItem item in powerupPool)
+                        {
+                            PowerupSet(l, item.powerup);
+                        }
+                    }
+                    foreach (PowerupPoolItem item in powerupPool)
+                    {
+                        //GUILayout.Label($"{powerupPoolsNm[item]} {powerupPools[item]} / {item.numTimeRepeatable}");
+                        if (GUILayout.Button($"{powerupPoolsNm[item]} {powerupPools[item]} / {item.numTimeRepeatable}"))
+                        {
+                            PlayerController.Instance.playerPerks.Equip(item.powerup);
+                            PowerupGenerator.Instance.RemoveFromPool(item.powerup);
+                        }
+                    }
+
                 }
                 else
                 {
@@ -287,7 +311,7 @@ namespace BepInPluginSample
                     SpawnSessionsSet();
                 }
                 GUILayout.EndHorizontal();
-                
+
                 GUILayout.BeginHorizontal();
                 GUILayout.Label($"hpMulti : {hpMulti.Value}");
                 //GUILayout.Label($"baseValue * (1f + multiplierBonus) * multiplierReduction + flatBonus");
@@ -307,6 +331,29 @@ namespace BepInPluginSample
                 }
                 GUILayout.EndHorizontal();
 
+                if (hordeSpawner !=null)
+                {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label($"speedMultiplier : {speedMultiplier.Value} , {hordeSpawner.speedMultiplier}");
+                //GUILayout.Label($"baseValue * (1f + multiplierBonus) * multiplierReduction + flatBonus");
+                if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
+                {
+                    speedMultiplier.Value += 1;
+                    hordeSpawner.speedMultiplier += 1;
+                }
+                if (GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20)))
+                {
+                    speedMultiplier.Value -= 1;
+                    hordeSpawner.speedMultiplier -= 1;
+                }
+                GUILayout.EndHorizontal();
+                }
+                else
+                {
+                    GUILayout.Label($"speedMultiplier null");
+                }
+                
+
                 // =========================================================
 
                 GUILayout.EndScrollView();
@@ -315,9 +362,42 @@ namespace BepInPluginSample
             GUI.DragWindow(); // 창 드레그 가능하게 해줌. 마지막에만 넣어야함
         }
 
+        private static void PowerupSet(List<Powerup> l, Powerup item)
+        {
+            if (item.powerupTreeUIData != null)
+            {
+                NewMethod1(l, item.powerupTreeUIData.startingPowerup);
+                NewMethod1(l, item.powerupTreeUIData.rightPowerup);
+                NewMethod1(l, item.powerupTreeUIData.leftPowerup);
+            }
+            NewMethod1(l, item);
+        }
+
+        private static void NewMethod1(List<Powerup> l, Powerup i)
+        {
+            if (i == null)
+            {
+                return;
+            }
+            if (!l.Contains(i))
+            {
+                try
+                {
+                    PlayerController.Instance.playerPerks.Equip(i);
+                }
+                catch (Exception e)
+                {
+                    logger.LogError("NewMethod1 : " + e);
+                }
+                PowerupGenerator.Instance.RemoveFromPool(i);
+                l.Add(i);
+            }
+
+        }
+
         public void OnDisable()
         {
-            Logger.LogWarning("OnDisable");
+            logger.LogWarning("OnDisable");
             harmony?.UnpatchSelf();
         }
 
@@ -531,7 +611,7 @@ namespace BepInPluginSample
         [HarmonyPostfix]
         public static void Start(MapInitializer __instance)
         {
-            logger.LogWarning($"MapInitializer.Start {SelectedMap.MapData.endless}");
+            logger.LogWarning($"MapInitializer.Start {SelectedMap.MapData.endless} ,  {SelectedMap.MapData.numPowerupsRepeat} ");
 
             spawnSessionsBak = (spawnSessions = SelectedMap.MapData.spawnSessions).Copy();
             endlessSpawnSessionsBak = (endlessSpawnSessions = SelectedMap.MapData.endlessSpawnSessions).Copy();
@@ -540,7 +620,7 @@ namespace BepInPluginSample
             {
                 spawnSessions[i].HP = spawnSessionsBak[i].HP * hpMulti.Value;
                 spawnSessions[i].maximum = spawnSessionsBak[i].maximum * swawmMulti.Value;
-                spawnSessions[i].numPerSpawn = spawnSessionsBak[i].numPerSpawn * swawmMulti.Value;
+                spawnSessions[i].numPerSpawn = spawnSessionsBak[i].numPerSpawn * swawmMulti.Value;                
             }
             for (int i = 0; i < endlessSpawnSessions.Count; i++)
             {
@@ -548,11 +628,58 @@ namespace BepInPluginSample
                 endlessSpawnSessions[i].maximum = endlessSpawnSessionsBak[i].maximum * swawmMulti.Value;
                 endlessSpawnSessions[i].numPerSpawn = endlessSpawnSessionsBak[i].numPerSpawn * swawmMulti.Value;
             }
+
+            //PowerupGenerator.Instance.
+        }
+
+        static List<Powerup> takenPowerups = new List<Powerup>();
+        static List<PowerupPoolItem> powerupPool = new List<PowerupPoolItem>();
+        static Dictionary<PowerupPoolItem, int> powerupPools = new Dictionary<PowerupPoolItem, int>();
+        static Dictionary<PowerupPoolItem, string> powerupPoolsNm = new Dictionary<PowerupPoolItem, string>();
+
+        [HarmonyPatch(typeof(PowerupGenerator), "InitPowerupPool")]
+        [HarmonyPostfix]
+        public static void InitPowerupPool(ref int numTimesRepeatable, List<PowerupPoolItem> ___powerupPool, List<Powerup> ___takenPowerups)//PowerupGenerator __instance, 
+        {
+            logger.LogWarning($"InitPowerupPool {numTimesRepeatable} , {___powerupPool.Count} , {___takenPowerups.Count} ");
+            takenPowerups = ___takenPowerups;
+            powerupPool = ___powerupPool.ToList();
+            foreach (PowerupPoolItem item in powerupPool)
+            {
+                logger.LogWarning($"{item.powerup.nameString} {item.numTimeRepeatable}");
+                powerupPools[item] = 0;
+                powerupPoolsNm[item] = item.powerup.nameString;
+            }
+        }
+
+        [HarmonyPatch(typeof(PowerupGenerator), "RemoveFromPool")]
+        [HarmonyPostfix]
+        public static void RemoveFromPool(Powerup powerup)//PowerupGenerator __instance,
+        {
+            logger.LogWarning($"RemoveFromPool {powerup.nameString} ");
+            PowerupPoolItem powerupPoolItem = powerupPool.Find((PowerupPoolItem x) => x.powerup == powerup);
+            if (powerupPoolItem == null)
+            {
+                return;
+            }
+            powerupPools[powerupPoolItem]++;
+        }
+
+        [HarmonyPatch(typeof(PowerupGenerator), "Awake")]
+        [HarmonyPostfix]
+        public static void PowerupGeneratorAwake()//PowerupGenerator __instance
+        {
+            logger.LogWarning($"PowerupGenerator.Awake {PowerupGenerator.CanReroll} ");
+            if (CanReroll.Value)
+            {
+                PowerupGenerator.CanReroll = true;
+            }
+
         }
 
         private static void SpawnSessionsSet()
         {
-            if (spawnSessions==null)
+            if (spawnSessions == null)
             {
                 return;
             }
@@ -569,45 +696,66 @@ namespace BepInPluginSample
             }
             logger.LogMessage("--- SpawnSessionsSet ED ---");
         }
-        
+
         private static void SpawnSessionsHPSet()
         {
-            if (spawnSessions==null)
+            if (spawnSessions == null)
             {
                 return;
             }
             logger.LogMessage("--- SpawnSessionsHPSet ST ---");
             for (int i = 0; i < spawnSessions.Count; i++)
             {
-                spawnSessions[i].HP = spawnSessionsBak[i].HP * hpMulti.Value;                
+                spawnSessions[i].HP = spawnSessionsBak[i].HP * hpMulti.Value;
             }
             for (int i = 0; i < endlessSpawnSessions.Count; i++)
             {
-                endlessSpawnSessions[i].HP = endlessSpawnSessionsBak[i].HP * hpMulti.Value;                
+                endlessSpawnSessions[i].HP = endlessSpawnSessionsBak[i].HP * hpMulti.Value;
             }
             logger.LogMessage("--- SpawnSessionsHPSet ED ---");
         }
+
+        static HordeSpawner hordeSpawner;
 
         [HarmonyPatch(typeof(HordeSpawner), "Awake")]
         [HarmonyPostfix]
         public static void Awake(HordeSpawner __instance, List<SpawnSession> ___activeSpawners)
         {
-            logger.LogWarning($"HordeSpawner.Awake {___activeSpawners.Count}");
+            logger.LogWarning($"HordeSpawner.Awake {___activeSpawners.Count} {__instance.speedMultiplier}");
             // this.owner.ChangeState<KillEnemiesState>();
             spawnSessions = ___activeSpawners;
+            hordeSpawner = __instance;
+
+            hordeSpawner.speedMultiplier += speedMultiplier.Value;
+        }
+
+        [HarmonyPatch(typeof(PowerupMenuState), "OnReroll")]
+        [HarmonyPrefix]
+        public static bool OnReroll(PowerupMenuState __instance, GameController ___owner)
+        {
+            logger.LogWarning($"PowerupMenuState.OnReroll");
+            if (CanReroll.Value)
+            {
+                AccessTools.Method(typeof(PowerupMenuState), "GeneratePowerups").Invoke(__instance, null);
+                //__instance.GeneratePowerups();            
+                //___owner.powerupRerollButton.gameObject.SetActive(false);
+                ___owner.powerupMenuPanel.SelectDefault();
+                return false;
+            }
+            return true;
         }
 
         /// <summary>
         /// 게임이 종료될때 출력됨
         /// </summary>
         /// <param name="__instance"></param>
-//        [HarmonyPatch(typeof(SpawnSession), MethodType.Constructor)]
-//        [HarmonyPostfix]
-//        public static void SpawnSessionCont(SpawnSession __instance)
-//        {
-//            logger.LogWarning($"SpawnSession ; {__instance.HP} ; {__instance.maximum} ;  {__instance.numPerSpawn} ; {__instance.spawnCooldown} ; {__instance.startTime} ; {__instance.duration} ; {__instance.isElite} ; {__instance.timer} ; ");
-//
-//        }
+        //        [HarmonyPatch(typeof(SpawnSession), MethodType.Constructor)]
+        //        [HarmonyPostfix]
+        //        public static void SpawnSessionCont(SpawnSession __instance)
+        //        {
+        //            logger.LogWarning($"SpawnSession ; {__instance.HP} ; {__instance.maximum} ;  {__instance.numPerSpawn} ; {__instance.spawnCooldown} ; {__instance.startTime} ; {__instance.duration} ; {__instance.isElite} ; {__instance.timer} ; ");
+        //
+        //        }
     }
 
     // =========================================================

@@ -89,6 +89,10 @@
       <HintPath>D:\games\20.Minutes.Till.Dawn.v0.8.1\MinutesTillDawn_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>D:\games\20.Minutes.Till.Dawn.v0.8.1\MinutesTillDawn_Data\Managed\UnityEngine.UI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Sample.cs" />
