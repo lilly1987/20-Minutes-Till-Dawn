@@ -50,6 +50,7 @@ namespace BepInPluginSample
         private static ConfigEntry<float> xpMulti;
         private static ConfigEntry<float> pickupRangeAdd;
         private static ConfigEntry<float> visionRangeAdd;
+        private static ConfigEntry<int> swawmMulti;
 
         public void Awake()
         {
@@ -81,6 +82,8 @@ namespace BepInPluginSample
             xpMulti = Config.Bind("game", "xpMulti", 2f);
             pickupRangeAdd = Config.Bind("game", "pickupRangeAdd", 9f);
             visionRangeAdd = Config.Bind("game", "visionRangeAdd", 9f);
+            swawmMulti = Config.Bind("game", "swawmMulti", 2);
+
         }
 
         public void IsOpen_SettingChanged(object sender, EventArgs e)
@@ -170,7 +173,8 @@ namespace BepInPluginSample
                 // 여기에 항목 작성
                 // =========================================================
 
-                if (GUILayout.Button($"add point 100000 : {PointsTracker.pts}")) {
+                if (GUILayout.Button($"add point 100000 : {PointsTracker.pts}"))
+                {
                     PointsTracker.pts += 100000;
                     if (SaveSystem.data != null)
                     {
@@ -254,12 +258,33 @@ namespace BepInPluginSample
                     }
                     GUILayout.EndHorizontal();
 
+
                 }
                 else
                 {
                     GUILayout.Label("PlayerController null");
                 }
 
+                GUILayout.Label("--- enemy ---");
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Label($"swawmMulti : {swawmMulti.Value}");
+                //GUILayout.Label($"baseValue * (1f + multiplierBonus) * multiplierReduction + flatBonus");
+                if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
+                {
+                    swawmMulti.Value += 1;
+                    SpawnSessionsSet();
+                }
+                if (GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20)))
+                {
+                    swawmMulti.Value -= 1;
+                    if (swawmMulti.Value < 1)
+                    {
+                        swawmMulti.Value = 1;
+                    }
+                    SpawnSessionsSet();
+                }
+                GUILayout.EndHorizontal();
 
                 // =========================================================
 
@@ -436,6 +461,8 @@ namespace BepInPluginSample
 
             PlayerController.Instance.stats[StatType.VisionRange].AddMultiplierBonus(visionRangeAdd.Value);
             GameObject.FindGameObjectWithTag("PlayerVision").transform.localScale = Vector3.one * PlayerController.Instance.stats[StatType.VisionRange].Modify(1f);
+
+            logger.LogWarning($"activeSpawners {spawnSessions.Count}");
         }
 
         [HarmonyPatch(typeof(BuffPlayerStats), "Start")]
@@ -473,6 +500,92 @@ namespace BepInPluginSample
             logger.LogWarning($"CombatState.OnTimerReached");
             // this.owner.ChangeState<KillEnemiesState>();
         }
+
+        static List<SpawnSession> spawnSessionsBak;
+        static List<SpawnSession> spawnSessions;
+        static List<SpawnSession> endlessSpawnSessionsBak;
+        static List<SpawnSession> endlessSpawnSessions;
+
+        [HarmonyPatch(typeof(MapInitializer), "Start")]
+        [HarmonyPostfix]
+        public static void Start(MapInitializer __instance)
+        {
+            logger.LogWarning($"MapInitializer.Start {SelectedMap.MapData.endless}");
+
+            spawnSessionsBak = (spawnSessions = SelectedMap.MapData.spawnSessions).Copy();
+            endlessSpawnSessionsBak = (endlessSpawnSessions = SelectedMap.MapData.endlessSpawnSessions).Copy();
+
+            SpawnSessionsSet();
+            /*
+[Warning:     Lilly] spawnSessions ; 24 ; 20 ;  4 ; 3 ; 0 ; 60 ; False ; 0 ;
+[Warning:     Lilly] spawnSessions ; 24 ; 50 ;  10 ; 4 ; 60 ; 60 ; False ; 0 ;
+[Warning:     Lilly] spawnSessions ; 30 ; 2 ;  1 ; 4 ; 60 ; 60 ; False ; 0 ;
+[Warning:     Lilly] spawnSessions ; 30 ; 200 ;  7 ; 2 ; 120 ; 240 ; False ; 0 ;
+[Warning:     Lilly] spawnSessions ; 30 ; 10 ;  2 ; 5 ; 120 ; 240 ; False ; 0 ;
+[Warning:     Lilly] spawnSessions ; 1000 ; 1 ;  1 ; 10 ; 180 ; 5 ; True ; 0 ;
+[Warning:     Lilly] spawnSessions ; 60 ; 400 ;  12 ; 2 ; 360 ; 120 ; False ; 0 ;
+[Warning:     Lilly] spawnSessions ; 400 ; 2 ;  2 ; 10 ; 360 ; 120 ; False ; 0 ;
+[Warning:     Lilly] spawnSessions ; 60 ; 1 ;  1 ; 1 ; 420 ; 120 ; False ; 0 ;
+[Warning:     Lilly] spawnSessions ; 80 ; 600 ;  16 ; 1 ; 480 ; 120 ; False ; 0 ;
+[Warning:     Lilly] spawnSessions ; 200 ; 30 ;  3 ; 1 ; 605 ; 55 ; False ; 0 ;
+[Warning:     Lilly] spawnSessions ; 200 ; 12 ;  2 ; 1 ; 660 ; 120 ; False ; 0 ;
+[Warning:     Lilly] spawnSessions ; 250 ; 100 ;  5 ; 1 ; 660 ; 120 ; False ; 0 ;
+[Warning:     Lilly] spawnSessions ; 240 ; 4 ;  2 ; 1 ; 660 ; 120 ; False ; 0 ;
+[Warning:     Lilly] spawnSessions ; 10000 ; 1 ;  1 ; 10 ; 680 ; 5 ; True ; 0 ;
+[Warning:     Lilly] spawnSessions ; 18000 ; 1 ;  1 ; 10 ; 960 ; 5 ; True ; 0 ;
+[Warning:     Lilly] spawnSessions ; 300 ; 16 ;  2 ; 1 ; 900 ; 60 ; False ; 0 ;
+[Warning:     Lilly] spawnSessions ; 400 ; 20 ;  2 ; 1 ; 900 ; 60 ; False ; 0 ;
+[Warning:     Lilly] spawnSessions ; 400 ; 300 ;  14 ; 1 ; 780 ; 115 ; False ; 0 ;
+[Warning:     Lilly] spawnSessions ; 250 ; 600 ;  26 ; 1 ; 960 ; 120 ; False ; 0 ;
+[Warning:     Lilly] spawnSessions ; 500 ; 300 ;  20 ; 1 ; 1080 ; 119 ; False ; 0 ;
+[Warning:     Lilly] spawnSessions ; 500 ; 10 ;  1 ; 1 ; 1080 ; 119 ; False ; 0 ;
+*/
+        }
+
+        private static void SpawnSessionsSet()
+        {
+            logger.LogMessage("--- SpawnSessionsSet ST ---");
+            for (int i = 0; i < spawnSessions.Count; i++)
+            {
+                spawnSessions[i].maximum = spawnSessionsBak[i].maximum * swawmMulti.Value;
+                spawnSessions[i].numPerSpawn = spawnSessionsBak[i].numPerSpawn * swawmMulti.Value;
+            }
+            foreach (var item in SelectedMap.MapData.spawnSessions)
+            {
+                logger.LogMessage($"spawnSessions ; {item.HP} ; {item.maximum} ; {item.numPerSpawn} ; {item.spawnCooldown} ; {item.startTime} ; {item.duration} ; {item.isElite} ; {item.timer} ; ");
+            }
+            for (int i = 0; i < endlessSpawnSessions.Count; i++)
+            {
+                endlessSpawnSessions[i].maximum = endlessSpawnSessionsBak[i].maximum * swawmMulti.Value;
+                endlessSpawnSessions[i].numPerSpawn = endlessSpawnSessionsBak[i].numPerSpawn * swawmMulti.Value;
+            }
+            foreach (var item in SelectedMap.MapData.endlessSpawnSessions)
+            {
+                logger.LogMessage($"endlessSpawnSessions ; {item.HP} ; {item.maximum} ;  {item.numPerSpawn} ; {item.spawnCooldown} ; {item.startTime} ; {item.duration} ; {item.isElite} ; {item.timer} ; ");
+            }
+            logger.LogMessage("--- SpawnSessionsSet ED ---");
+        }
+
+        [HarmonyPatch(typeof(HordeSpawner), "Awake")]
+        [HarmonyPostfix]
+        public static void Awake(HordeSpawner __instance, List<SpawnSession> ___activeSpawners)
+        {
+            logger.LogWarning($"HordeSpawner.Awake {___activeSpawners.Count}");
+            // this.owner.ChangeState<KillEnemiesState>();
+            spawnSessions = ___activeSpawners;
+        }
+
+        /// <summary>
+        /// 게임이 종료될때 출력됨
+        /// </summary>
+        /// <param name="__instance"></param>
+//        [HarmonyPatch(typeof(SpawnSession), MethodType.Constructor)]
+//        [HarmonyPostfix]
+//        public static void SpawnSessionCont(SpawnSession __instance)
+//        {
+//            logger.LogWarning($"SpawnSession ; {__instance.HP} ; {__instance.maximum} ;  {__instance.numPerSpawn} ; {__instance.spawnCooldown} ; {__instance.startTime} ; {__instance.duration} ; {__instance.isElite} ; {__instance.timer} ; ");
+//
+//        }
     }
 
     // =========================================================
