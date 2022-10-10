@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>BepInPluginSample</RootNamespace>
-    <AssemblyName>BepInPluginSample</AssemblyName>
+    <AssemblyName>MinutesTillDawn</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -35,30 +35,39 @@
   <ItemGroup>
     <Reference Include="0Harmony, Version=2.7.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\HarmonyX.2.7.0\lib\net45\0Harmony.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>D:\games\20.Minutes.Till.Dawn.v0.8.1\MinutesTillDawn_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="BepInEx, Version=5.4.20.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\BepInEx.BaseLib.5.4.20\lib\net35\BepInEx.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Mono.Cecil, Version=0.11.4.0, Culture=neutral, PublicKeyToken=50cebf1cceb9d05e, processorArchitecture=MSIL">
       <HintPath>..\packages\Mono.Cecil.0.11.4\lib\net40\Mono.Cecil.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Mono.Cecil.Mdb, Version=0.11.4.0, Culture=neutral, PublicKeyToken=50cebf1cceb9d05e, processorArchitecture=MSIL">
       <HintPath>..\packages\Mono.Cecil.0.11.4\lib\net40\Mono.Cecil.Mdb.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Mono.Cecil.Pdb, Version=0.11.4.0, Culture=neutral, PublicKeyToken=50cebf1cceb9d05e, processorArchitecture=MSIL">
       <HintPath>..\packages\Mono.Cecil.0.11.4\lib\net40\Mono.Cecil.Pdb.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Mono.Cecil.Rocks, Version=0.11.4.0, Culture=neutral, PublicKeyToken=50cebf1cceb9d05e, processorArchitecture=MSIL">
       <HintPath>..\packages\Mono.Cecil.0.11.4\lib\net40\Mono.Cecil.Rocks.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="MonoMod.RuntimeDetour, Version=21.12.13.1, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\MonoMod.RuntimeDetour.21.12.13.1\lib\net452\MonoMod.RuntimeDetour.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="MonoMod.Utils, Version=21.12.13.1, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\MonoMod.Utils.21.12.13.1\lib\net452\MonoMod.Utils.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -70,12 +79,15 @@
     <Reference Include="System.Xml" />
     <Reference Include="UnityEngine">
       <HintPath>D:\games\20.Minutes.Till.Dawn.v0.8.1\MinutesTillDawn_Data\Managed\UnityEngine.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>D:\games\20.Minutes.Till.Dawn.v0.8.1\MinutesTillDawn_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.IMGUIModule">
       <HintPath>D:\games\20.Minutes.Till.Dawn.v0.8.1\MinutesTillDawn_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>False</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>

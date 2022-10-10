@@ -45,6 +45,7 @@ namespace BepInPluginSample
         private static ConfigEntry<bool> hpChg;
         private static ConfigEntry<bool> useAmmo;
         private static ConfigEntry<float> xpMulti;
+        private static ConfigEntry<float> pickupRangeAdd;
 
         public void Awake()
         {
@@ -69,9 +70,10 @@ namespace BepInPluginSample
 
             // =========================================================
 
-            hpChg = Config.Bind("game", "hpChg", true);
-            useAmmo = Config.Bind("game", "useAmmo", true);
+            hpChg = Config.Bind("game", "hpChg", false);
+            useAmmo = Config.Bind("game", "useAmmo", false);
             xpMulti = Config.Bind("game", "xpMulti", 2f);
+            pickupRangeAdd = Config.Bind("game", "pickupRangeAdd", 9f);
         }
 
         public void IsOpen_SettingChanged(object sender, EventArgs e)
@@ -174,17 +176,38 @@ namespace BepInPluginSample
                 if (PlayerController.Instance != null)
                 {
                     GUILayout.BeginHorizontal();
-                    GUILayout.Label($"move Speed {PlayerController.Instance.movementSpeed}");
+                    GUILayout.Label($"move Speed : {PlayerController.Instance.movementSpeed}");
                     if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20))) { PlayerController.Instance.movementSpeed += 1; }
                     if (GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20))) { PlayerController.Instance.movementSpeed -= 1; }
                     GUILayout.EndHorizontal();
-                    GUILayout.Label($"move Speed Modify {PlayerController.Instance.stats[StatType.MoveSpeed].Modify(PlayerController.Instance.movementSpeed)}");
-                    GUILayout.Label($"move Speed Multiplier {PlayerController.Instance.moveSpeedMultiplier}");
+
+                    GUILayout.Label($"move Speed Modify : {PlayerController.Instance.stats[StatType.MoveSpeed].Modify(PlayerController.Instance.movementSpeed)}");
+
+                    GUILayout.Label($"move Speed Multiplier : {PlayerController.Instance.moveSpeedMultiplier}");
+
+                    //GameObject.FindGameObjectWithTag("Pickupper").transform.localScale = Vector3.one * PlayerController.Instance.stats[StatType.PickupRange].Modify(1f);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label($"Pickupper AddMultiplierBonus : {PlayerController.Instance.stats[StatType.PickupRange].Modify(1f)}");
+                    //GUILayout.Label($"baseValue * (1f + multiplierBonus) * multiplierReduction + flatBonus");
+                    if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
+                    {
+                        pickupRangeAdd.Value += 1;
+                        PlayerController.Instance.stats[StatType.PickupRange].AddMultiplierBonus(1);
+                    }
+                    if (GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20)))
+                    {
+                        pickupRangeAdd.Value -= 1;
+                        PlayerController.Instance.stats[StatType.PickupRange].AddMultiplierBonus(-1);
+                    }
+                    GUILayout.EndHorizontal();
+
+                    //GameObject.FindGameObjectWithTag("PlayerVision").transform.localScale = Vector3.one * PlayerController.Instance.stats[StatType.VisionRange].Modify(1f);
                 }
                 else
                 {
                     GUILayout.Label("PlayerController null");
                 }
+
 
                 // =========================================================
 
@@ -222,7 +245,7 @@ namespace BepInPluginSample
             {
                 return;
             }
-            logger.LogWarning($"UseAmmo {__instance.amount} , {a}");
+            //logger.LogWarning($"UseAmmo {__instance.amount} , {a}");
             a = 0;
         }
 
@@ -230,8 +253,145 @@ namespace BepInPluginSample
         [HarmonyPrefix]
         public static void GainXP(ref float amount, float ___xp)//PlayerXP __instance,
         {
-            logger.LogWarning($"GainXP {___xp} , {amount}");
+            //logger.LogWarning($"GainXP {___xp} , {amount}");
             amount *= xpMulti.Value;
+        }
+        /*
+        [HarmonyPatch(typeof(StatMod), "Modify")]
+        [HarmonyPrefix]
+        public static void Modify(ref float baseValue)
+        {
+            
+        }
+        */
+
+        private static void NewMethod<T>(string name, StatMod __instance, ref T value)
+        {
+            if (PlayerController.Instance.stats[StatType.VisionRange] == __instance)
+            {
+                logger.LogWarning($"{name} VisionRange {value}");
+            }
+            else if (PlayerController.Instance.stats[StatType.PickupRange] == __instance)
+            {
+                logger.LogWarning($"{name} PickupRange {value}");
+            }
+            else if (PlayerController.Instance.stats[StatType.MoveSpeed] == __instance)
+            {
+                logger.LogWarning($"{name} MoveSpeed {value}");
+            }
+            else if (PlayerController.Instance.stats[StatType.WalkSpeed] == __instance)
+            {
+                logger.LogWarning($"{name} WalkSpeed {value}");
+            }
+            else if (PlayerController.Instance.stats[StatType.SummonDamage] == __instance)
+            {
+                logger.LogWarning($"{name} SummonDamage {value}");
+            }
+            else if (PlayerController.Instance.stats[StatType.SummonAttackSpeed] == __instance)
+            {
+                logger.LogWarning($"{name} SummonAttackSpeed {value}");
+            }
+            else if (PlayerController.Instance.stats[StatType.BulletDamage] == __instance)
+            {
+                logger.LogWarning($"{name} BulletDamage {value}");
+            }
+            else
+            {
+                logger.LogWarning($"{name} {value}");
+            }
+        }
+        /*
+        [HarmonyPatch(typeof(StatMod), "AddFlatBonus")]
+        [HarmonyPrefix]
+        public static void AddFlatBonus(StatMod __instance, ref int value)
+        {
+            NewMethod("AddFlatBonus",__instance, ref value);
+        }
+
+        [HarmonyPatch(typeof(StatMod), "AddMultiplierBonus")]
+        [HarmonyPrefix]
+        public static void AddMultiplierBonus(StatMod __instance, ref float value)
+        {
+            NewMethod("AddMultiplierBonus",__instance, ref value);
+        }
+
+        [HarmonyPatch(typeof(StatMod), "AddMultiplierReduction")]
+        [HarmonyPrefix]
+        public static void AddMultiplierReduction(StatMod __instance, ref float value)
+        {
+            NewMethod("AddMultiplierReduction",__instance, ref value);
+        }
+        */
+
+        /// <summary>
+        /// 부하가 걸림
+        /// </summary>
+        /// <param name="__instance"></param>
+        /// <param name="s"></param>
+        // [HarmonyPatch(typeof(StatsHolder), "Item", MethodType.Getter)]
+        // [HarmonyPrefix]
+        // public static void GetItem(StatsHolder __instance, StatType s)
+        // {
+        //     logger.LogWarning($"GetItem {s}");
+        // }
+
+        [HarmonyPatch(typeof(PlayerController), "Awake")]
+        [HarmonyPrefix]
+        public static void Awake(PlayerController __instance)
+        {
+            logger.LogWarning($"PlayerController.Awake");
+        }
+        
+        [HarmonyPatch(typeof(PlayerController), "Awake")]
+        [HarmonyPrefix]
+        public static void AwakePost(PlayerController __instance)
+        {
+            logger.LogWarning($"PlayerController.AwakePost");
+        }
+        
+        [HarmonyPatch(typeof(StatsHolder), "Awake")]
+        [HarmonyPrefix]
+        public static void Awake(StatsHolder __instance)
+        {
+            logger.LogWarning($"StatsHolder.Awake");
+        }
+
+        [HarmonyPatch(typeof(StatsHolder), "Awake")]
+        [HarmonyPostfix]
+        public static void AwakePost(StatsHolder __instance)
+        {
+            logger.LogWarning($"StatsHolder.AwakePost");
+
+        }
+
+        [HarmonyPatch(typeof(PlayerBuffs), "Start")]
+        [HarmonyPrefix]
+        public static void Start(PlayerBuffs __instance)
+        {
+            logger.LogWarning($"PlayerBuffs.Start");
+        }
+
+        [HarmonyPatch(typeof(PlayerBuffs), "Start")]
+        [HarmonyPostfix]
+        public static void StartPost(PlayerBuffs __instance)
+        {
+            logger.LogWarning($"PlayerBuffs.StartPost");
+            PlayerController.Instance.stats[StatType.PickupRange].AddMultiplierBonus(pickupRangeAdd.Value);
+            GameObject.FindGameObjectWithTag("Pickupper").transform.localScale = Vector3.one * PlayerController.Instance.stats[StatType.PickupRange].Modify(1f);
+        }
+
+        [HarmonyPatch(typeof(BuffPlayerStats), "Start")]
+        [HarmonyPrefix]
+        public static void Start(BuffPlayerStats __instance)
+        {
+            logger.LogWarning($"BuffPlayerStats.Start");
+        }
+
+        [HarmonyPatch(typeof(BuffPlayerStats), "Start")]
+        [HarmonyPostfix]
+        public static void StartPost(BuffPlayerStats __instance)
+        {
+            logger.LogWarning($"BuffPlayerStats.StartPost");
         }
 
         // =========================================================
