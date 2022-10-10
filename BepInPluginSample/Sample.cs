@@ -51,6 +51,7 @@ namespace BepInPluginSample
         private static ConfigEntry<float> pickupRangeAdd;
         private static ConfigEntry<float> visionRangeAdd;
         private static ConfigEntry<int> swawmMulti;
+        private static ConfigEntry<int> hpMulti;
 
         public void Awake()
         {
@@ -83,6 +84,7 @@ namespace BepInPluginSample
             pickupRangeAdd = Config.Bind("game", "pickupRangeAdd", 9f);
             visionRangeAdd = Config.Bind("game", "visionRangeAdd", 9f);
             swawmMulti = Config.Bind("game", "swawmMulti", 2);
+            hpMulti = Config.Bind("game", "hpMulti", 2);
 
         }
 
@@ -283,6 +285,25 @@ namespace BepInPluginSample
                         swawmMulti.Value = 1;
                     }
                     SpawnSessionsSet();
+                }
+                GUILayout.EndHorizontal();
+                
+                GUILayout.BeginHorizontal();
+                GUILayout.Label($"hpMulti : {hpMulti.Value}");
+                //GUILayout.Label($"baseValue * (1f + multiplierBonus) * multiplierReduction + flatBonus");
+                if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
+                {
+                    hpMulti.Value += 1;
+                    SpawnSessionsHPSet();
+                }
+                if (GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20)))
+                {
+                    hpMulti.Value -= 1;
+                    if (hpMulti.Value < 1)
+                    {
+                        hpMulti.Value = 1;
+                    }
+                    SpawnSessionsHPSet();
                 }
                 GUILayout.EndHorizontal();
 
@@ -515,55 +536,56 @@ namespace BepInPluginSample
             spawnSessionsBak = (spawnSessions = SelectedMap.MapData.spawnSessions).Copy();
             endlessSpawnSessionsBak = (endlessSpawnSessions = SelectedMap.MapData.endlessSpawnSessions).Copy();
 
-            SpawnSessionsSet();
-            /*
-[Warning:     Lilly] spawnSessions ; 24 ; 20 ;  4 ; 3 ; 0 ; 60 ; False ; 0 ;
-[Warning:     Lilly] spawnSessions ; 24 ; 50 ;  10 ; 4 ; 60 ; 60 ; False ; 0 ;
-[Warning:     Lilly] spawnSessions ; 30 ; 2 ;  1 ; 4 ; 60 ; 60 ; False ; 0 ;
-[Warning:     Lilly] spawnSessions ; 30 ; 200 ;  7 ; 2 ; 120 ; 240 ; False ; 0 ;
-[Warning:     Lilly] spawnSessions ; 30 ; 10 ;  2 ; 5 ; 120 ; 240 ; False ; 0 ;
-[Warning:     Lilly] spawnSessions ; 1000 ; 1 ;  1 ; 10 ; 180 ; 5 ; True ; 0 ;
-[Warning:     Lilly] spawnSessions ; 60 ; 400 ;  12 ; 2 ; 360 ; 120 ; False ; 0 ;
-[Warning:     Lilly] spawnSessions ; 400 ; 2 ;  2 ; 10 ; 360 ; 120 ; False ; 0 ;
-[Warning:     Lilly] spawnSessions ; 60 ; 1 ;  1 ; 1 ; 420 ; 120 ; False ; 0 ;
-[Warning:     Lilly] spawnSessions ; 80 ; 600 ;  16 ; 1 ; 480 ; 120 ; False ; 0 ;
-[Warning:     Lilly] spawnSessions ; 200 ; 30 ;  3 ; 1 ; 605 ; 55 ; False ; 0 ;
-[Warning:     Lilly] spawnSessions ; 200 ; 12 ;  2 ; 1 ; 660 ; 120 ; False ; 0 ;
-[Warning:     Lilly] spawnSessions ; 250 ; 100 ;  5 ; 1 ; 660 ; 120 ; False ; 0 ;
-[Warning:     Lilly] spawnSessions ; 240 ; 4 ;  2 ; 1 ; 660 ; 120 ; False ; 0 ;
-[Warning:     Lilly] spawnSessions ; 10000 ; 1 ;  1 ; 10 ; 680 ; 5 ; True ; 0 ;
-[Warning:     Lilly] spawnSessions ; 18000 ; 1 ;  1 ; 10 ; 960 ; 5 ; True ; 0 ;
-[Warning:     Lilly] spawnSessions ; 300 ; 16 ;  2 ; 1 ; 900 ; 60 ; False ; 0 ;
-[Warning:     Lilly] spawnSessions ; 400 ; 20 ;  2 ; 1 ; 900 ; 60 ; False ; 0 ;
-[Warning:     Lilly] spawnSessions ; 400 ; 300 ;  14 ; 1 ; 780 ; 115 ; False ; 0 ;
-[Warning:     Lilly] spawnSessions ; 250 ; 600 ;  26 ; 1 ; 960 ; 120 ; False ; 0 ;
-[Warning:     Lilly] spawnSessions ; 500 ; 300 ;  20 ; 1 ; 1080 ; 119 ; False ; 0 ;
-[Warning:     Lilly] spawnSessions ; 500 ; 10 ;  1 ; 1 ; 1080 ; 119 ; False ; 0 ;
-*/
+            for (int i = 0; i < spawnSessions.Count; i++)
+            {
+                spawnSessions[i].HP = spawnSessionsBak[i].HP * hpMulti.Value;
+                spawnSessions[i].maximum = spawnSessionsBak[i].maximum * swawmMulti.Value;
+                spawnSessions[i].numPerSpawn = spawnSessionsBak[i].numPerSpawn * swawmMulti.Value;
+            }
+            for (int i = 0; i < endlessSpawnSessions.Count; i++)
+            {
+                endlessSpawnSessions[i].HP = endlessSpawnSessionsBak[i].HP * hpMulti.Value;
+                endlessSpawnSessions[i].maximum = endlessSpawnSessionsBak[i].maximum * swawmMulti.Value;
+                endlessSpawnSessions[i].numPerSpawn = endlessSpawnSessionsBak[i].numPerSpawn * swawmMulti.Value;
+            }
         }
 
         private static void SpawnSessionsSet()
         {
+            if (spawnSessions==null)
+            {
+                return;
+            }
             logger.LogMessage("--- SpawnSessionsSet ST ---");
             for (int i = 0; i < spawnSessions.Count; i++)
             {
                 spawnSessions[i].maximum = spawnSessionsBak[i].maximum * swawmMulti.Value;
                 spawnSessions[i].numPerSpawn = spawnSessionsBak[i].numPerSpawn * swawmMulti.Value;
             }
-            foreach (var item in SelectedMap.MapData.spawnSessions)
-            {
-                logger.LogMessage($"spawnSessions ; {item.HP} ; {item.maximum} ; {item.numPerSpawn} ; {item.spawnCooldown} ; {item.startTime} ; {item.duration} ; {item.isElite} ; {item.timer} ; ");
-            }
             for (int i = 0; i < endlessSpawnSessions.Count; i++)
             {
                 endlessSpawnSessions[i].maximum = endlessSpawnSessionsBak[i].maximum * swawmMulti.Value;
                 endlessSpawnSessions[i].numPerSpawn = endlessSpawnSessionsBak[i].numPerSpawn * swawmMulti.Value;
             }
-            foreach (var item in SelectedMap.MapData.endlessSpawnSessions)
-            {
-                logger.LogMessage($"endlessSpawnSessions ; {item.HP} ; {item.maximum} ;  {item.numPerSpawn} ; {item.spawnCooldown} ; {item.startTime} ; {item.duration} ; {item.isElite} ; {item.timer} ; ");
-            }
             logger.LogMessage("--- SpawnSessionsSet ED ---");
+        }
+        
+        private static void SpawnSessionsHPSet()
+        {
+            if (spawnSessions==null)
+            {
+                return;
+            }
+            logger.LogMessage("--- SpawnSessionsHPSet ST ---");
+            for (int i = 0; i < spawnSessions.Count; i++)
+            {
+                spawnSessions[i].HP = spawnSessionsBak[i].HP * hpMulti.Value;                
+            }
+            for (int i = 0; i < endlessSpawnSessions.Count; i++)
+            {
+                endlessSpawnSessions[i].HP = endlessSpawnSessionsBak[i].HP * hpMulti.Value;                
+            }
+            logger.LogMessage("--- SpawnSessionsHPSet ED ---");
         }
 
         [HarmonyPatch(typeof(HordeSpawner), "Awake")]
