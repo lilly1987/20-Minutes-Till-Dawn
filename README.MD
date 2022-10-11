@@ -1,5 +1,7 @@
 ﻿# 플러그인 사용 방법
  
+  모든 플러그인 최신 가이드는 https://github.com/lilly1987/BepInPluginSample 를 참조  
+  
  ## BepInEx 설치 필요 
 
 https://github.com/BepInEx/BepInEx/releases  
@@ -16,9 +18,12 @@ exe있는게임폴더\BepInEx\plugins
 아래 스샷처럼 넣기  
 ![2022-10-10 17 15 53](https://user-images.githubusercontent.com/20321215/194823986-a4ec5024-bd38-4ca1-81a8-335041293b4e.png)
 
+## 플러그인 공통
 
+- 넘버패드 + .(점) : 창 접기/펼치기
+- 넘버패드 + 0 : 창 켜기/끄기
 
-# 기능
+## 기능
 
 - 포인트 10만 추가
 - 새로고침 무한대
