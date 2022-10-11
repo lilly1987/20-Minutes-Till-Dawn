@@ -50,13 +50,16 @@ namespace BepInPluginSample
         private static ConfigEntry<bool> useAmmo;
         private static ConfigEntry<bool> onlyWin;
         private static ConfigEntry<bool> CanReroll;
+        private static ConfigEntry<bool> powerup;
+        private static ConfigEntry<bool> maxHPNotZero;
         private static ConfigEntry<float> movementSpeed;
         private static ConfigEntry<float> xpMulti;
         private static ConfigEntry<float> pickupRangeAdd;
         private static ConfigEntry<float> visionRangeAdd;
-        private static ConfigEntry<float> speedMultiplier;
+        private static ConfigEntry<float> enemySpeedMultiplier;
         private static ConfigEntry<int> swawmMulti;
         private static ConfigEntry<int> hpMulti;
+        private static ConfigEntry<int> numTimeRepeatable;
 
         // =========================================================
         #endregion
@@ -86,17 +89,20 @@ namespace BepInPluginSample
 
             #region 변수
             // =========================================================
+            powerup = Config.Bind("game", "powerup", true);
             onlyWin = Config.Bind("game", "onlyWin", true);
             CanReroll = Config.Bind("game", "CanReroll", true);
+            maxHPNotZero = Config.Bind("game", "maxHPNotZero", true);
             hpChg = Config.Bind("game", "hpChg", false);
             useAmmo = Config.Bind("game", "useAmmo", false);
             movementSpeed = Config.Bind("game", "movementSpeed", 8f);
             xpMulti = Config.Bind("game", "xpMulti", 2f);
             pickupRangeAdd = Config.Bind("game", "pickupRangeAdd", 9f);
             visionRangeAdd = Config.Bind("game", "visionRangeAdd", 9f);
-            speedMultiplier = Config.Bind("game", "speedMultiplier", 9f);
+            enemySpeedMultiplier = Config.Bind("game", "enemySpeedMultiplier", 1f);
             swawmMulti = Config.Bind("game", "swawmMulti", 2);
             hpMulti = Config.Bind("game", "hpMulti", 2);
+            numTimeRepeatable = Config.Bind("game", "numTimeRepeatable", 6);
             // =========================================================
             #endregion
         }
@@ -219,6 +225,7 @@ namespace BepInPluginSample
                 }
 
                 if (GUILayout.Button($"hpChg {hpChg.Value}")) { hpChg.Value = !hpChg.Value; }
+                if (GUILayout.Button($"maxHPNotZero {maxHPNotZero.Value}")) { maxHPNotZero.Value = !maxHPNotZero.Value; }
 
                 if (GUILayout.Button($"useAmmo {useAmmo.Value}")) { useAmmo.Value = !useAmmo.Value; }
 
@@ -248,10 +255,8 @@ namespace BepInPluginSample
 
                     GUILayout.Label($"move Speed Multiplier : {PlayerController.Instance.moveSpeedMultiplier}");
 
-                    //GameObject.FindGameObjectWithTag("Pickupper").transform.localScale = Vector3.one * PlayerController.Instance.stats[StatType.PickupRange].Modify(1f);
                     GUILayout.BeginHorizontal();
                     GUILayout.Label($"Pickupper AddMultiplierBonus : {PlayerController.Instance.stats[StatType.PickupRange].Modify(1f)}");
-                    //GUILayout.Label($"baseValue * (1f + multiplierBonus) * multiplierReduction + flatBonus");
                     if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
                     {
                         pickupRangeAdd.Value += 1;
@@ -264,10 +269,8 @@ namespace BepInPluginSample
                     }
                     GUILayout.EndHorizontal();
 
-                    //GameObject.FindGameObjectWithTag("PlayerVision").transform.localScale = Vector3.one * PlayerController.Instance.stats[StatType.VisionRange].Modify(1f);
                     GUILayout.BeginHorizontal();
                     GUILayout.Label($"VisionRange AddMultiplierBonus : {PlayerController.Instance.stats[StatType.VisionRange].Modify(1f)}");
-                    //GUILayout.Label($"baseValue * (1f + multiplierBonus) * multiplierReduction + flatBonus");
                     if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
                     {
                         visionRangeAdd.Value += 1;
@@ -280,32 +283,51 @@ namespace BepInPluginSample
                     }
                     GUILayout.EndHorizontal();
 
+                    #region powerup
 
                     GUILayout.Label($"--- powerup --- {takenPowerups.Count}");
-                    if (GUILayout.Button($"All Add One"))
+
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label($"numTimeRepeatable : {numTimeRepeatable.Value}");
+                    if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
                     {
-                        List<Powerup> l = new List<Powerup>();
+                        numTimeRepeatable.Value += 1;
+                    }
+                    if (GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20)))
+                    {
+                        numTimeRepeatable.Value -= 1;
+                    }
+                    GUILayout.EndHorizontal();
+                    if (GUILayout.Button($"powerup menu {powerup.Value}")) { powerup.Value = !powerup.Value; }
+                    if (powerup.Value)
+                    {
+                        if (GUILayout.Button($"All Add One"))
+                        {
+                            List<Powerup> l = new List<Powerup>();
+                            foreach (PowerupPoolItem item in powerupPool)
+                            {
+                                PowerupSet(l, item.powerup);
+                            }
+                        }
                         foreach (PowerupPoolItem item in powerupPool)
                         {
-                            PowerupSet(l, item.powerup);
-                        }
-                    }
-                    foreach (PowerupPoolItem item in powerupPool)
-                    {
-                        //GUILayout.Label($"{powerupPoolsNm[item]} {powerupPools[item]} / {item.numTimeRepeatable}");
-                        if (GUILayout.Button($"{powerupPoolsNm[item]} {powerupPools[item]} / {item.numTimeRepeatable}"))
-                        {
-                            PlayerController.Instance.playerPerks.Equip(item.powerup);
-                            PowerupGenerator.Instance.RemoveFromPool(item.powerup);
+                            //GUILayout.Label($"{powerupPoolsNm[item]} {powerupPools[item]} / {item.numTimeRepeatable}");
+                            if (GUILayout.Button($"{powerupPoolsNm[item]} {powerupPools[item]} / {item.numTimeRepeatable}"))
+                            {
+                                PlayerController.Instance.playerPerks.Equip(item.powerup);
+                                PowerupGenerator.Instance.RemoveFromPool(item.powerup);
+                            }
                         }
                     }
 
+                    #endregion
                 }
                 else
                 {
                     GUILayout.Label("PlayerController null");
                 }
 
+                #region enemy
                 GUILayout.Label("--- enemy ---");
 
                 GUILayout.BeginHorizontal();
@@ -346,27 +368,28 @@ namespace BepInPluginSample
                 }
                 GUILayout.EndHorizontal();
 
-                if (hordeSpawner !=null)
+                if (hordeSpawner != null)
                 {
-                GUILayout.BeginHorizontal();
-                GUILayout.Label($"speedMultiplier : {speedMultiplier.Value} , {hordeSpawner.speedMultiplier}");
-                //GUILayout.Label($"baseValue * (1f + multiplierBonus) * multiplierReduction + flatBonus");
-                if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
-                {
-                    speedMultiplier.Value += 1;
-                    hordeSpawner.speedMultiplier += 1;
-                }
-                if (GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20)))
-                {
-                    speedMultiplier.Value -= 1;
-                    hordeSpawner.speedMultiplier -= 1;
-                }
-                GUILayout.EndHorizontal();
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label($"speedMultiplier : {enemySpeedMultiplier.Value} , {hordeSpawner.speedMultiplier}");
+                    //GUILayout.Label($"baseValue * (1f + multiplierBonus) * multiplierReduction + flatBonus");
+                    if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
+                    {
+                        enemySpeedMultiplier.Value += 1;
+                        hordeSpawner.speedMultiplier += 1;
+                    }
+                    if (GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20)))
+                    {
+                        enemySpeedMultiplier.Value -= 1;
+                        hordeSpawner.speedMultiplier -= 1;
+                    }
+                    GUILayout.EndHorizontal();
                 }
                 else
                 {
                     GUILayout.Label($"speedMultiplier null");
                 }
+                #endregion
 
                 // =========================================================
 
@@ -423,7 +446,8 @@ namespace BepInPluginSample
 
         // ====================== 하모니 패치 샘플 ===================================
 
-        #region HPChange
+        #region HP
+
         [HarmonyPatch(typeof(Health), "HPChange")]
         [HarmonyPrefix]
         public static void HPChange(Health __instance, ref int change)
@@ -435,6 +459,23 @@ namespace BepInPluginSample
             //logger.LogWarning($"HPChange {__instance.maxHP} , {change}");
             change = __instance.maxHP / 2;
         }
+
+        
+        [HarmonyPatch(typeof(Health), "maxHP", MethodType.Setter)]
+        [HarmonyPrefix]
+        public static void baseMaxHP(Health __instance, ref int value)
+        {
+            if (!maxHPNotZero.Value || PlayerController.Instance.playerHealth != __instance)
+            {
+                return;
+            }
+            logger.LogWarning($"HPChange {__instance.maxHP} , {value}");
+            if (value<1)
+            {
+                value = 1;
+            }
+        }
+
         #endregion
 
         #region UseAmmo
@@ -658,7 +699,7 @@ public static void Modify(ref float baseValue)
             {
                 spawnSessions[i].HP = spawnSessionsBak[i].HP * hpMulti.Value;
                 spawnSessions[i].maximum = spawnSessionsBak[i].maximum * swawmMulti.Value;
-                spawnSessions[i].numPerSpawn = spawnSessionsBak[i].numPerSpawn * swawmMulti.Value;                
+                spawnSessions[i].numPerSpawn = spawnSessionsBak[i].numPerSpawn * swawmMulti.Value;
             }
             for (int i = 0; i < endlessSpawnSessions.Count; i++)
             {
@@ -719,7 +760,7 @@ public static void Modify(ref float baseValue)
             spawnSessions = ___activeSpawners;
             hordeSpawner = __instance;
 
-            hordeSpawner.speedMultiplier += speedMultiplier.Value;
+            hordeSpawner.speedMultiplier += enemySpeedMultiplier.Value;
         }
 
         /// <summary>
@@ -755,6 +796,7 @@ public static void Modify(ref float baseValue)
                 logger.LogWarning($"{item.powerup.nameString} {item.numTimeRepeatable}");
                 powerupPools[item] = 0;
                 powerupPoolsNm[item] = item.powerup.nameString;
+                item.numTimeRepeatable = numTimeRepeatable.Value;
             }
         }
 
