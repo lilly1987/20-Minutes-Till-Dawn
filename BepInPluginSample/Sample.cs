@@ -54,6 +54,7 @@ namespace BepInPluginSample
         private static ConfigEntry<bool> maxHPNotZero;
         private static ConfigEntry<bool> startTime;
         private static ConfigEntry<bool> autoPowerup;
+        private static ConfigEntry<bool> powerupLimit;
         private static ConfigEntry<float> movementSpeed;
         private static ConfigEntry<float> xpMulti;
         private static ConfigEntry<float> pickupRangeAdd;
@@ -99,6 +100,7 @@ namespace BepInPluginSample
             hpChg = Config.Bind("game", "hpChg", false);
             useAmmo = Config.Bind("game", "useAmmo", false);
             autoPowerup = Config.Bind("game", "autoPowerup", true);
+            powerupLimit = Config.Bind("game", "powerupLimit", false);
             movementSpeed = Config.Bind("game", "movementSpeed", 8f);
             xpMulti = Config.Bind("game", "xpMulti", 2f);
             pickupRangeAdd = Config.Bind("game", "pickupRangeAdd", 9f);
@@ -334,9 +336,12 @@ namespace BepInPluginSample
                         numTimeRepeatable.Value -= 1;
                     }
                     GUILayout.EndHorizontal();
+
                     if (GUILayout.Button($"powerup menu {powerup.Value}")) { powerup.Value = !powerup.Value; }
                     if (powerup.Value)
                     {
+                        if (GUILayout.Button($"powerup limit {powerupLimit.Value}")) { powerupLimit.Value = !powerupLimit.Value; }
+
                         if (GUILayout.Button($"All Add One"))
                         {
                             List<Powerup> l = new List<Powerup>();
@@ -350,8 +355,11 @@ namespace BepInPluginSample
                             //GUILayout.Label($"{powerupPoolsNm[item]} {powerupPools[item]} / {item.numTimeRepeatable}");
                             if (GUILayout.Button($"{powerupPoolsNm[item]} {powerupPools[item]} / {item.numTimeRepeatable}"))
                             {
-                                PlayerController.Instance.playerPerks.Equip(item.powerup);
-                                PowerupGenerator.Instance.RemoveFromPool(item.powerup);
+                                if (item.numTimeRepeatable > 0 || !powerupLimit.Value)
+                                {
+                                    PlayerController.Instance.playerPerks.Equip(item.powerup);
+                                    PowerupGenerator.Instance.RemoveFromPool(item.powerup);
+                                }
                             }
                         }
                     }
@@ -440,37 +448,37 @@ namespace BepInPluginSample
 
         #region PowerupSet
 
-        private static void PowerupSet(List<Powerup> list, Powerup item)
+        private static void PowerupSet(List<Powerup> list, Powerup powerup)
         {
-            if (item.powerupTreeUIData != null)
+            if (powerup.powerupTreeUIData !=null)
             {
-                PowerupSet2(list, item.powerupTreeUIData.startingPowerup);
-                PowerupSet2(list, item.powerupTreeUIData.rightPowerup);
-                PowerupSet2(list, item.powerupTreeUIData.leftPowerup);
+                PowerupSet2(list, powerup.powerupTreeUIData.finalPowerup);
+                PowerupSet2(list, powerup.powerupTreeUIData.leftPowerup);
+                PowerupSet2(list, powerup.powerupTreeUIData.rightPowerup);
+                PowerupSet2(list, powerup.powerupTreeUIData.startingPowerup);
             }
-            PowerupSet2(list, item);
+            PowerupSet2(list, powerup);
         }
 
-        private static void PowerupSet2(List<Powerup> list, Powerup item)
+        private static void PowerupSet2(List<Powerup> list, Powerup powerup)
         {
-            if (item == null)
+            if (!list.Contains(powerup))
             {
-                return;
-            }
-            if (!list.Contains(item))
-            {
-                try
+                if (powerupItems[powerup].numTimeRepeatable > 0 || !powerupLimit.Value)
                 {
-                    PlayerController.Instance.playerPerks.Equip(item);
+                    try
+                    {
+                        PlayerController.Instance.playerPerks.Equip(powerup);
+                        PowerupGenerator.Instance.RemoveFromPool(powerup);
+                    }
+                    catch (Exception e)
+                    {
+                        logger.LogError("NewMethod1 : " + e);
+                    }
+                    
                 }
-                catch (Exception e)
-                {
-                    logger.LogError("NewMethod1 : " + e);
-                }
-                PowerupGenerator.Instance.RemoveFromPool(item);
-                list.Add(item);
+                list.Add(powerup);
             }
-
         }
 
         #endregion
@@ -858,6 +866,7 @@ public static void Modify(ref float baseValue)
         static List<Powerup> takenPowerups = new List<Powerup>();
         static List<PowerupPoolItem> powerupPool = new List<PowerupPoolItem>();
         static List<PowerupPoolItem> powerupPoolOri = new List<PowerupPoolItem>();
+        static Dictionary<Powerup, PowerupPoolItem> powerupItems = new Dictionary<Powerup, PowerupPoolItem>();
         static Dictionary<PowerupPoolItem, int> powerupPools = new Dictionary<PowerupPoolItem, int>();
         static Dictionary<PowerupPoolItem, string> powerupPoolsNm = new Dictionary<PowerupPoolItem, string>();
 
@@ -871,9 +880,21 @@ public static void Modify(ref float baseValue)
             powerupPoolOri = ___powerupPool;
             foreach (PowerupPoolItem item in powerupPool)
             {
-                logger.LogWarning($"{item.powerup.nameString} {item.numTimeRepeatable}");
+                logger.LogWarning($"{item.powerup.nameString} {item.numTimeRepeatable} {item.powerup.anyPrereqFulfill}");
+                if (item.powerup.powerupTreeUIData!=null)
+                {
+                    logger.LogWarning($"{item.powerup.powerupTreeUIData.startingPowerup.nameString} {item.powerup.powerupTreeUIData.leftPowerup.nameString} {item.powerup.powerupTreeUIData.rightPowerup.nameString} {item.powerup.powerupTreeUIData.finalPowerup.nameString} ");
+                }
+                if (item.powerup.anyPrereqFulfill)
+                {
+                }
+                foreach (var item2 in item.powerup.prereqs)
+                {
+                    logger.LogWarning($"{item2.nameString}");
+                }
                 powerupPools[item] = 0;
                 powerupPoolsNm[item] = item.powerup.nameString;
+                powerupItems[item.powerup] = item;
                 item.numTimeRepeatable = numTimeRepeatable.Value;
             }
         }
@@ -883,7 +904,8 @@ public static void Modify(ref float baseValue)
         public static void RemoveFromPool(Powerup powerup)//PowerupGenerator __instance,
         {
             logger.LogWarning($"RemoveFromPool {powerup.nameString} ");
-            PowerupPoolItem powerupPoolItem = powerupPool.Find((PowerupPoolItem x) => x.powerup == powerup);
+            //PowerupPoolItem powerupPoolItem = powerupPool.Find((PowerupPoolItem x) => x.powerup == powerup);
+            PowerupPoolItem powerupPoolItem = powerupItems[powerup];
             if (powerupPoolItem == null)
             {
                 return;
