@@ -52,6 +52,8 @@ namespace BepInPluginSample
         private static ConfigEntry<bool> CanReroll;
         private static ConfigEntry<bool> powerup;
         private static ConfigEntry<bool> maxHPNotZero;
+        private static ConfigEntry<bool> startTime;
+        private static ConfigEntry<bool> autoPowerup;
         private static ConfigEntry<float> movementSpeed;
         private static ConfigEntry<float> xpMulti;
         private static ConfigEntry<float> pickupRangeAdd;
@@ -93,8 +95,10 @@ namespace BepInPluginSample
             onlyWin = Config.Bind("game", "onlyWin", true);
             CanReroll = Config.Bind("game", "CanReroll", true);
             maxHPNotZero = Config.Bind("game", "maxHPNotZero", true);
+            startTime = Config.Bind("game", "startTime", true);
             hpChg = Config.Bind("game", "hpChg", false);
             useAmmo = Config.Bind("game", "useAmmo", false);
+            autoPowerup = Config.Bind("game", "autoPowerup", true);
             movementSpeed = Config.Bind("game", "movementSpeed", 8f);
             xpMulti = Config.Bind("game", "xpMulti", 2f);
             pickupRangeAdd = Config.Bind("game", "pickupRangeAdd", 9f);
@@ -105,6 +109,8 @@ namespace BepInPluginSample
             numTimeRepeatable = Config.Bind("game", "numTimeRepeatable", 6);
             // =========================================================
             #endregion
+
+            PrereqsMet = AccessTools.Method(typeof(PowerupGenerator), "PrereqsMet");
         }
 
         #region GUI
@@ -233,6 +239,7 @@ namespace BepInPluginSample
                 }
 
                 if (GUILayout.Button($"hpChg {hpChg.Value}")) { hpChg.Value = !hpChg.Value; }
+                
                 if (GUILayout.Button($"maxHPNotZero {maxHPNotZero.Value}")) { maxHPNotZero.Value = !maxHPNotZero.Value; }
 
                 if (GUILayout.Button($"useAmmo {useAmmo.Value}")) { useAmmo.Value = !useAmmo.Value; }
@@ -294,9 +301,13 @@ namespace BepInPluginSample
                     #region powerup
 
                     GUILayout.Label($"--- powerup --- {takenPowerups.Count}");
-
+                    if (GUILayout.Button($"autoPowerup {autoPowerup.Value}")) { autoPowerup.Value = !autoPowerup.Value; }
                     GUILayout.BeginHorizontal();
                     GUILayout.Label($"numTimeRepeatable : {numTimeRepeatable.Value}");
+                    if (GUILayout.Button("3", GUILayout.Width(20), GUILayout.Height(20)))
+                    {
+                        numTimeRepeatable.Value = 3;
+                    }
                     if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
                     {
                         numTimeRepeatable.Value += 1;
@@ -338,6 +349,7 @@ namespace BepInPluginSample
                 #region enemy
                 GUILayout.Label("--- enemy ---");
 
+                if (GUILayout.Button($"startTime 1/2 {startTime.Value}")) { startTime.Value = !startTime.Value; }
                 GUILayout.BeginHorizontal();
                 GUILayout.Label($"swawmMulti : {swawmMulti.Value}");
                 //GUILayout.Label($"baseValue * (1f + multiplierBonus) * multiplierReduction + flatBonus");
@@ -703,6 +715,31 @@ public static void Modify(ref float baseValue)
             spawnSessionsBak = (spawnSessions = SelectedMap.MapData.spawnSessions).Copy();
             endlessSpawnSessionsBak = (endlessSpawnSessions = SelectedMap.MapData.endlessSpawnSessions).Copy();
 
+
+            /*
+            [Message: Lilly] BrainMonster; 24; 20; 4; 3; 0; 60; False; 0;
+            [Message: Lilly] BrainMonster; 24; 50; 10; 4; 60; 60; False; 0;
+            [Message: Lilly] Boomer; 30; 2; 1; 4; 60; 60; False; 0;
+            [Message: Lilly] BrainMonster; 30; 200; 7; 2; 120; 240; False; 0;
+            [Message: Lilly] Boomer; 30; 10; 2; 5; 120; 240; False; 0;
+            [Message: Lilly] ElderBrain; 1000; 1; 1; 10; 180; 5; True; 0;
+            [Message: Lilly] BrainMonster; 80; 400; 12; 2; 360; 120; False; 0;
+            [Message: Lilly] EyeMonster; 400; 2; 2; 10; 360; 120; False; 0;
+            [Message: Lilly] Boomer; 60; 1; 1; 1; 420; 120; False; 0;
+            [Message: Lilly] BrainMonster; 100; 600; 16; 1; 480; 120; False; 0;
+            [Message: Lilly] Lamprey; 300; 30; 3; 1; 605; 55; False; 0;
+            [Message: Lilly] EyeMonster; 300; 12; 2; 1; 660; 120; False; 0;
+            [Message: Lilly] Lamprey; 350; 100; 5; 1; 660; 120; False; 0;
+            [Message: Lilly] Boomer; 240; 4; 2; 1; 660; 120; False; 0;
+            [Message: Lilly] SpawnerMonster; 10000; 1; 1; 10; 680; 5; True; 0;
+            [Message: Lilly] WingedMonster; 18000; 1; 1; 10; 960; 5; True; 0;
+            [Message: Lilly] EyeMonster; 350; 16; 2; 1; 900; 60; False; 0;
+            [Message: Lilly] Boomer; 400; 20; 2; 1; 900; 60; False; 0;
+            [Message: Lilly] Lamprey; 500; 300; 14; 1; 780; 115; False; 0;
+            [Message: Lilly] BrainMonster; 250; 600; 26; 1; 960; 120; False; 0;
+            [Message: Lilly] Lamprey; 600; 300; 20; 1; 1080; 119; False; 0;
+            [Message: Lilly] EyeMonster; 500; 10; 1; 1; 1080; 119; False; 0;
+            */
             for (int i = 0; i < spawnSessions.Count; i++)
             {
                 spawnSessions[i].HP = spawnSessionsBak[i].HP * hpMulti.Value;
@@ -715,8 +752,22 @@ public static void Modify(ref float baseValue)
                 endlessSpawnSessions[i].maximum = endlessSpawnSessionsBak[i].maximum * swawmMulti.Value;
                 endlessSpawnSessions[i].numPerSpawn = endlessSpawnSessionsBak[i].numPerSpawn * swawmMulti.Value;
             }
+            if (startTime.Value)
+            {
+                for (int i = 0; i < spawnSessions.Count; i++)
+                {
+                    spawnSessions[i].startTime = spawnSessionsBak[i].startTime / 2f;
+                }
+                for (int i = 0; i < endlessSpawnSessions.Count; i++)
+                {
+                    endlessSpawnSessions[i].startTime = endlessSpawnSessionsBak[i].startTime / 2f;
+                }
+            }
 
-            //PowerupGenerator.Instance.
+            foreach (var item in spawnSessions)
+            {
+                logger.LogMessage($"{item.monsterPrefab.name} ; {item.HP} ; {item.maximum} ; {item.numPerSpawn} ; {item.spawnCooldown} ; {item.startTime} ; {item.duration} ; {item.isElite} ; {item.timer} ;");
+            }
         }
 
         private static void SpawnSessionsSet()
@@ -789,6 +840,7 @@ public static void Modify(ref float baseValue)
 
         static List<Powerup> takenPowerups = new List<Powerup>();
         static List<PowerupPoolItem> powerupPool = new List<PowerupPoolItem>();
+        static List<PowerupPoolItem> powerupPoolOri = new List<PowerupPoolItem>();
         static Dictionary<PowerupPoolItem, int> powerupPools = new Dictionary<PowerupPoolItem, int>();
         static Dictionary<PowerupPoolItem, string> powerupPoolsNm = new Dictionary<PowerupPoolItem, string>();
 
@@ -799,6 +851,7 @@ public static void Modify(ref float baseValue)
             logger.LogWarning($"InitPowerupPool {numTimesRepeatable} , {___powerupPool.Count} , {___takenPowerups.Count} ");
             takenPowerups = ___takenPowerups;
             powerupPool = ___powerupPool.ToList();
+            powerupPoolOri = ___powerupPool;
             foreach (PowerupPoolItem item in powerupPool)
             {
                 logger.LogWarning($"{item.powerup.nameString} {item.numTimeRepeatable}");
@@ -820,14 +873,49 @@ public static void Modify(ref float baseValue)
             }
             powerupPools[powerupPoolItem]++;
         }
+
+        static System.Reflection.MethodInfo PrereqsMet;
+
+        [HarmonyPatch(typeof(PowerupMenuState), "Enter")]
+        [HarmonyPrefix]
+        public static bool Enter(PowerupMenuState __instance)//PowerupGenerator __instance,
+        {
+            logger.LogWarning($"PowerupMenuState.Enter");
+            
+            if (autoPowerup.Value && powerupPoolOri.Count>0)
+            {
+                PowerupPoolItem powerupPoolItem = null;
+                while (true)
+                {
+                    powerupPoolItem = powerupPoolOri[UnityEngine.Random.Range(0, powerupPoolOri.Count)];
+                    if ((bool)PrereqsMet.Invoke(powerupGenerator, new object[] { powerupPoolItem.powerup }))
+                    {
+                        AccessTools.Method(typeof(PowerupMenuState), "OnConfirm").Invoke(__instance, new object[] { null, powerupPoolItem.powerup });
+                        return false;
+                    }
+                }
+                
+                /*
+                PlayerController.Instance.playerPerks.Equip(powerupPoolItem.powerup);
+                PowerupGenerator.Instance.RemoveFromPool(powerupPoolItem.powerup);
+                */
+                //return false;
+            }
+            return true;
+        }
+
+
         #endregion
 
         #region CanReroll
 
+        static PowerupGenerator powerupGenerator;
+
         [HarmonyPatch(typeof(PowerupGenerator), "Awake")]
         [HarmonyPostfix]
-        public static void PowerupGeneratorAwake()//PowerupGenerator __instance
+        public static void PowerupGeneratorAwake(PowerupGenerator __instance)//
         {
+            powerupGenerator = __instance;
             logger.LogWarning($"PowerupGenerator.Awake {PowerupGenerator.CanReroll} ");
             if (CanReroll.Value)
             {
