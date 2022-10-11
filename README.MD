@@ -17,13 +17,6 @@ exe있는게임폴더\BepInEx\plugins
 ![2022-10-10 17 15 53](https://user-images.githubusercontent.com/20321215/194823986-a4ec5024-bd38-4ca1-81a8-335041293b4e.png)
 
 
-# 비주얼 스튜디오로 플러그인 직접 수정할경우
-
-## 비주얼 스튜디오 패키지 관리자 설정
-
-"도구 - 패키지 관리자 - 설정 - 패키지 소스"에서 아래 링크 추가  
-https://nuget.bepinex.dev/v3/index.json  
-
 
 # 기능
 
@@ -44,6 +37,15 @@ https://nuget.bepinex.dev/v3/index.json
 - 적 소환 갯수 배율(1배 2배 등)
 - 적 체력 배율
 - 적 이동 속도 배율
+
+
+# 비주얼 스튜디오로 플러그인 직접 수정할경우
+
+## 비주얼 스튜디오 패키지 관리자 설정
+
+"도구 - 패키지 관리자 - 설정 - 패키지 소스"에서 아래 링크 추가  
+https://nuget.bepinex.dev/v3/index.json  
+
 
 ## dll 참조 추가
 
