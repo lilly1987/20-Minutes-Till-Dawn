@@ -250,8 +250,25 @@ namespace BepInPluginSample
                 if (GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20))) { xpMulti.Value -= 1; }
                 GUILayout.EndHorizontal();
 
+                
+
+
+
                 if (PlayerController.Instance != null)
                 {
+                    /*
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label($"numPowerupChoices : {gameController.numPowerupChoices}");
+                    if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
+                    {
+                        gameController.numPowerupChoices += 1;
+                    }
+                    if (GUILayout.Button("-", GUILayout.Width(20), GUILayout.Height(20)))
+                    {
+                        gameController.numPowerupChoices += 1;
+                    }
+                    GUILayout.EndHorizontal();
+                    */
                     GUILayout.BeginHorizontal();
                     GUILayout.Label($"move Speed : {PlayerController.Instance.movementSpeed}");
                     if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(20)))
@@ -686,13 +703,13 @@ public static void Modify(ref float baseValue)
         #region onlyWin
         [HarmonyPatch(typeof(CombatState), "OnDeath")]
         [HarmonyPrefix]
-        public static bool OnDeath(CombatState __instance, GameController ___owner)
+        public static bool OnDeath(CombatState __instance)//, GameController ___owner
         {
             logger.LogWarning($"CombatState.OnDeath");
             // this.owner.ChangeState<PlayerDeadState>();
             if (onlyWin.Value)
             {
-                ___owner.ChangeState<KillEnemiesState>();
+                gameController.ChangeState<KillEnemiesState>();
                 return false;
             }
             return true;
@@ -926,7 +943,7 @@ public static void Modify(ref float baseValue)
 
         [HarmonyPatch(typeof(PowerupMenuState), "OnReroll")]
         [HarmonyPrefix]
-        public static bool OnReroll(PowerupMenuState __instance, GameController ___owner)
+        public static bool OnReroll(PowerupMenuState __instance)//, GameController ___owner
         {
             logger.LogWarning($"PowerupMenuState.OnReroll");
             if (CanReroll.Value)
@@ -934,13 +951,23 @@ public static void Modify(ref float baseValue)
                 AccessTools.Method(typeof(PowerupMenuState), "GeneratePowerups").Invoke(__instance, null);
                 //__instance.GeneratePowerups();            
                 //___owner.powerupRerollButton.gameObject.SetActive(false);
-                ___owner.powerupMenuPanel.SelectDefault();
+                gameController.powerupMenuPanel.SelectDefault();
                 return false;
             }
             return true;
         }
-
         #endregion
+
+        static GameController gameController;
+
+        [HarmonyPatch(typeof(GameController), "Awake")]
+        [HarmonyPostfix]
+        public static void Awake(GameController __instance)
+        {
+            logger.LogWarning($"GameController.Awake");
+            gameController = __instance;
+        }
+
 
         // =========================================================
     }
