@@ -22,8 +22,8 @@ namespace BepInPluginSample
 
         static Harmony harmony;
 
-        public ConfigEntry<BepInEx.Configuration.KeyboardShortcut> ShowCounter;
-        public ConfigEntry<BepInEx.Configuration.KeyboardShortcut> ShowCounter2;
+        public ConfigEntry<BepInEx.Configuration.KeyboardShortcut> isGUIOnKey;
+        public ConfigEntry<BepInEx.Configuration.KeyboardShortcut> isOpenKey;
 
         private ConfigEntry<bool> isGUIOn;
         private ConfigEntry<bool> isOpen;
@@ -70,8 +70,8 @@ namespace BepInPluginSample
             logger = Logger;
             Logger.LogMessage("Awake");
 
-            ShowCounter = Config.Bind("GUI", "isGUIOnKey", new KeyboardShortcut(KeyCode.Keypad0));// 이건 단축키
-            ShowCounter2 = Config.Bind("GUI", "isOpenKey", new KeyboardShortcut(KeyCode.KeypadPeriod));// 이건 단축키
+            isGUIOnKey = Config.Bind("GUI", "isGUIOnKey", new KeyboardShortcut(KeyCode.Keypad0));// 이건 단축키
+            isOpenKey = Config.Bind("GUI", "isOpenKey", new KeyboardShortcut(KeyCode.KeypadPeriod));// 이건 단축키
 
             isGUIOn = Config.Bind("GUI", "isGUIOn", true);
             isOpen = Config.Bind("GUI", "isOpen", true);
@@ -113,7 +113,7 @@ namespace BepInPluginSample
             logger.LogInfo($"IsOpen_SettingChanged {isOpen.Value} , {isGUIOn.Value},{windowRect.x} ");
             if (isOpen.Value)
             {
-                title = ShowCounter.Value.ToString() + "," + ShowCounter2.Value.ToString();
+                title = isGUIOnKey.Value.ToString() + "," + isOpenKey.Value.ToString();
                 h = GUILayout.Height(uiH.Value);
                 w = GUILayout.Width(uiW.Value);
                 windowName = FullName;
@@ -147,13 +147,21 @@ namespace BepInPluginSample
         public void Update()
         {
             #region GUI
-            if (ShowCounter.Value.IsUp())// 단축키가 일치할때
+            if (isGUIOnKey.Value.IsUp())// 단축키가 일치할때
             {
                 isGUIOn.Value = !isGUIOn.Value;
             }
-            if (ShowCounter2.Value.IsUp())// 단축키가 일치할때
+            if (isOpenKey.Value.IsUp())// 단축키가 일치할때
             {
-                isOpen.Value = !isOpen.Value;
+                if (isGUIOn.Value)
+                {
+                    isOpen.Value = !isOpen.Value;
+                }
+                else
+                {
+                    isGUIOn.Value = true;
+                    isOpen.Value = true;
+                }
             }
             #endregion
         }
